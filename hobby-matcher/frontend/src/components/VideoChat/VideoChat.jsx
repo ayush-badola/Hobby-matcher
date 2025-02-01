@@ -1,6 +1,6 @@
 import './VideoChat.css';
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import {
     Container,
@@ -21,35 +21,91 @@ import ChatBox from './ChatBox';
 
 const VideoChat = () => {
     const { roomId } = useParams();
+    const navigate = useNavigate();
     const [socket, setSocket] = useState(null);
     const [stream, setStream] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [callStatus, setCallStatus] = useState('connecting');
     
     const localVideoRef = useRef();
     const remoteVideoRef = useRef();
     const peerConnectionRef = useRef();
 
+    const handleEndCall = () => {
+        try {
+            // Stop all tracks
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                setStream(null);
+            }
+
+            // Close peer connection
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
+            }
+
+            // Disconnect socket
+            if (socket) {
+                socket.emit('leave-room', roomId);
+                socket.disconnect();
+            }
+
+            // Navigate back to dashboard
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Error ending call:', error);
+            // Force navigate even if there's an error
+            navigate('/dashboard');
+        }
+    };
+
     useEffect(() => {
         const newSocket = io('http://localhost:5000');
         setSocket(newSocket);
 
-        // Get local stream
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(currentStream => {
                 setStream(currentStream);
-                localVideoRef.current.srcObject = currentStream;
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = currentStream;
+                }
                 setupWebRTC(currentStream, newSocket);
+            })
+            .catch(err => {
+                console.error('Error accessing media devices:', err);
             });
 
+        newSocket.on('call-accepted', ({ accepterId }) => {
+            setCallStatus('connected');
+            // Start WebRTC connection
+            setupWebRTC(stream, newSocket);
+        });
+
+        newSocket.on('call-rejected', () => {
+            alert('Call was rejected');
+            navigate('/dashboard');
+        });
+
+        newSocket.on('user-disconnected', () => {
+            alert('Other user disconnected');
+            handleEndCall();
+        });
+
         return () => {
+            // Cleanup when component unmounts
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.close();
             }
-            newSocket.close();
+            if (newSocket) {
+                newSocket.disconnect();
+            }
         };
     }, [roomId]);
 
@@ -96,15 +152,21 @@ const VideoChat = () => {
 
     const toggleAudio = () => {
         if (stream) {
-            stream.getAudioTracks()[0].enabled = !stream.getAudioTracks()[0].enabled;
-            setIsMuted(!isMuted);
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setIsMuted(!audioTrack.enabled);
+            }
         }
     };
 
     const toggleVideo = () => {
         if (stream) {
-            stream.getVideoTracks()[0].enabled = !stream.getVideoTracks()[0].enabled;
-            setIsVideoOff(!isVideoOff);
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                setIsVideoOff(!videoTrack.enabled);
+            }
         }
     };
 
@@ -139,7 +201,7 @@ const VideoChat = () => {
                                         borderRadius: '4px'
                                     }}
                                 >
-                                    You
+                                    You {isMuted && '(Muted)'} {isVideoOff && '(Video Off)'}
                                 </Typography>
                             </Box>
                             <Box sx={{ flex: 1, position: 'relative' }}>
@@ -156,14 +218,49 @@ const VideoChat = () => {
                                 />
                             </Box>
                         </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
-                            <IconButton onClick={toggleAudio}>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            gap: 2, 
+                            mt: 2,
+                            p: 2,
+                            backgroundColor: 'rgba(0,0,0,0.05)',
+                            borderRadius: '8px'
+                        }}>
+                            <IconButton 
+                                onClick={toggleAudio}
+                                sx={{ 
+                                    backgroundColor: isMuted ? 'error.main' : 'primary.main',
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: isMuted ? 'error.dark' : 'primary.dark',
+                                    }
+                                }}
+                            >
                                 {isMuted ? <MicOff /> : <Mic />}
                             </IconButton>
-                            <IconButton onClick={toggleVideo}>
+                            <IconButton 
+                                onClick={toggleVideo}
+                                sx={{ 
+                                    backgroundColor: isVideoOff ? 'error.main' : 'primary.main',
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: isVideoOff ? 'error.dark' : 'primary.dark',
+                                    }
+                                }}
+                            >
                                 {isVideoOff ? <VideocamOff /> : <Videocam />}
                             </IconButton>
-                            <IconButton color="error">
+                            <IconButton 
+                                onClick={handleEndCall}
+                                sx={{ 
+                                    backgroundColor: 'error.main',
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: 'error.dark',
+                                    }
+                                }}
+                            >
                                 <CallEnd />
                             </IconButton>
                         </Box>

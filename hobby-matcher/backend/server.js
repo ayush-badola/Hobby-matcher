@@ -37,11 +37,11 @@ io.on('connection', (socket) => {
         console.log(`User ${socket.id} joined room ${roomId}`);
     });
 
-    // socket.on('leave-room', (roomId) => {
-    //     socket.leave(roomId);
-    //     socket.to(roomId).emit('user-disconnected');
-    //     console.log(`User ${socket.id} left room ${roomId}`);
-    // });
+    socket.on('leave-room', (roomId) => {
+        socket.leave(roomId);
+        // Notify other participants that user has left
+        socket.to(roomId).emit('user-disconnected', socket.id);
+    });
 
     socket.on('send-message', (data) => {
         socket.to(data.roomId).emit('receive-message', data);
@@ -49,6 +49,31 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
+    });
+
+    // Handle call initiation
+    socket.on('initiate-call', ({ roomId, targetUserId }) => {
+        console.log(`Call initiated to ${targetUserId} in room ${roomId}`);
+        socket.to(targetUserId).emit('incoming-call', {
+            roomId,
+            callerId: socket.id
+        });
+    });
+
+    // Handle call acceptance
+    socket.on('accept-call', ({ roomId, callerId }) => {
+        socket.to(callerId).emit('call-accepted', {
+            roomId,
+            accepterId: socket.id
+        });
+    });
+
+    // Handle call rejection
+    socket.on('reject-call', ({ roomId, callerId }) => {
+        socket.to(callerId).emit('call-rejected', {
+            roomId,
+            rejecterId: socket.id
+        });
     });
 });
 

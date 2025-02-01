@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
+import io from 'socket.io-client';
 import {
     Container,
     Grid,
@@ -15,7 +16,8 @@ import {
     ListItemAvatar,
     Avatar,
     Chip,
-    Box
+    Box,
+    Stack
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import VideocamIcon from '@mui/icons-material/Videocam';
@@ -25,6 +27,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [socket, setSocket] = useState(null);
 
     useEffect(() => {
         fetchMatches();
@@ -43,8 +46,32 @@ const Dashboard = () => {
 
     const handleStartChat = (matchId) => {
         const roomId = [user._id, matchId].sort().join('-');
+        socket.emit('initiate-call', {
+            roomId,
+            targetUserId: matchId
+        });
         navigate(`/video-chat/${roomId}`);
     };
+
+    // Add socket listeners for incoming calls
+    useEffect(() => {
+        const newSocket = io('http://localhost:5000');
+        setSocket(newSocket);
+
+        newSocket.on('incoming-call', ({ roomId, callerId }) => {
+            const accept = window.confirm('Incoming video call. Accept?');
+            if (accept) {
+                newSocket.emit('accept-call', { roomId, callerId });
+                navigate(`/video-chat/${roomId}`);
+            } else {
+                newSocket.emit('reject-call', { roomId, callerId });
+            }
+        });
+
+        return () => {
+            newSocket.disconnect();
+        };
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -73,11 +100,11 @@ const Dashboard = () => {
                         <Typography variant="body1" sx={{ mt: 2, mb: 1 }}>
                             <strong>Your Hobbies:</strong>
                         </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        <Stack direction="row" flexWrap="wrap" gap={1}>
                             {user.hobbies.map((hobby) => (
                                 <Chip key={hobby} label={hobby} size="small" />
                             ))}
-                        </Box>
+                        </Stack>
                     </Paper>
                 </Grid>
 
@@ -102,25 +129,26 @@ const Dashboard = () => {
                                             <PersonIcon />
                                         </Avatar>
                                     </ListItemAvatar>
-                                    <ListItemText
-                                        primary={match.user.username}
-                                        secondary={
-                                            <Box sx={{ mt: 1 }}>
-                                                {match.user.hobbies.map((hobby) => (
-                                                    <Chip
-                                                        key={hobby}
-                                                        label={hobby}
-                                                        size="small"
-                                                        sx={{ mr: 0.5, mb: 0.5 }}
-                                                    />
-                                                ))}
-                                            </Box>
-                                        }
-                                    />
+                                    <Box sx={{ flex: 1 }}>
+                                        <Typography variant="subtitle1">
+                                            {match.user.username}
+                                        </Typography>
+                                        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+                                            {match.user.hobbies.map((hobby) => (
+                                                <Chip
+                                                    key={hobby}
+                                                    label={hobby}
+                                                    size="small"
+                                                    sx={{ mr: 0.5, mb: 0.5 }}
+                                                />
+                                            ))}
+                                        </Stack>
+                                    </Box>
                                     <Button
                                         variant="contained"
                                         startIcon={<VideocamIcon />}
                                         onClick={() => handleStartChat(match.user._id)}
+                                        sx={{ ml: 2 }}
                                     >
                                         Chat
                                     </Button>
