@@ -21,20 +21,16 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        // Generate hobby embeddings
+        const hobbyEmbeddings = hobbiesToVector(hobbies);
 
-        // Generate interests vector
-        const interestsVector = hobbiesToVector(hobbies);
-
-        // Create user
+        // Create user with plain password (it will be hashed by the pre-save middleware)
         const user = await User.create({
             username,
             email,
-            password: hashedPassword,
+            password, // Don't hash here, let the model middleware handle it
             hobbies,
-            interestsVector
+            hobbyEmbeddings
         });
 
         if (user) {
@@ -47,6 +43,7 @@ const registerUser = async (req, res) => {
             });
         }
     } catch (error) {
+        console.error('Registration error:', error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -58,20 +55,29 @@ const loginUser = async (req, res) => {
 
         // Check for user email
         const user = await User.findOne({ email });
-
-        if (user && (await bcrypt.compare(password, user.password))) {
-            res.json({
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                hobbies: user.hobbies,
-                token: generateToken(user._id)
-            });
-        } else {
-            res.status(400).json({ message: 'Invalid credentials' });
+        
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
+
+        // Compare password using the model method
+        const isMatch = await user.comparePassword(password);
+        
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        res.json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            hobbies: user.hobbies,
+            token: generateToken(user._id)
+        });
+
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error('Login error:', error);
+        res.status(400).json({ message: 'Invalid credentials' });
     }
 };
 
@@ -79,4 +85,3 @@ module.exports = {
     registerUser,
     loginUser
 };
-

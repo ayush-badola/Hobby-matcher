@@ -2,7 +2,7 @@ import './Dashboard.css';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../utils/api';
+import axios from 'axios';
 import io from 'socket.io-client';
 import {
     Container,
@@ -17,61 +17,97 @@ import {
     Avatar,
     Chip,
     Box,
-    Stack
+    Stack,
+    CircularProgress
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import VideocamIcon from '@mui/icons-material/Videocam';
 
 const Dashboard = () => {
+    const { user, logout } = useAuth();
     const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { user, logout } = useAuth();
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
     const [socket, setSocket] = useState(null);
 
-    useEffect(() => {
-        fetchMatches();
-    }, []);
-
     const fetchMatches = async () => {
         try {
-            const response = await api.get('/users/matches');
-            setMatches(response.data);
+            const response = await axios.get('http://localhost:5000/api/users/matches', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            
+            // Ensure we're setting an array of matches
+            setMatches(response.data.matches || []);
+            setError(null);
         } catch (error) {
             console.error('Error fetching matches:', error);
+            setError('Failed to fetch matches');
+            setMatches([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStartChat = (matchId) => {
-        const roomId = [user._id, matchId].sort().join('-');
-        socket.emit('initiate-call', {
-            roomId,
-            targetUserId: matchId
-        });
-        navigate(`/video-chat/${roomId}`);
-    };
-
-    // Add socket listeners for incoming calls
     useEffect(() => {
-        const newSocket = io('http://localhost:5000');
-        setSocket(newSocket);
+        fetchMatches();
+    }, []);
 
-        newSocket.on('incoming-call', ({ roomId, callerId }) => {
-            const accept = window.confirm('Incoming video call. Accept?');
-            if (accept) {
-                newSocket.emit('accept-call', { roomId, callerId });
-                navigate(`/video-chat/${roomId}`);
-            } else {
-                newSocket.emit('reject-call', { roomId, callerId });
+    useEffect(() => {
+        // Create socket connection
+        const newSocket = io('http://localhost:5000');
+        
+        // Debug logs for socket connection
+        newSocket.on('connect', () => {
+            console.log('Socket Connected:', newSocket.id);
+            // Register user ID with socket
+            if (user?._id) {
+                console.log('Registering user:', user._id);
+                newSocket.emit('register-user', user._id);
             }
         });
 
+        // Modified incoming call handler
+        newSocket.on('incoming-call', ({ roomId, callerId }) => {
+            console.log('Incoming call from:', callerId);
+            
+            // Force the confirm dialog to appear in the main thread
+            setTimeout(() => {
+                const accept = window.confirm('Incoming video call. Would you like to accept?');
+                console.log('Call response:', accept ? 'accepted' : 'rejected');
+                
+                if (accept) {
+                    newSocket.emit('accept-call', { roomId, callerId });
+                    navigate(`/video-chat/${roomId}`);
+                } else {
+                    newSocket.emit('reject-call', { roomId, callerId });
+                }
+            }, 100);
+        });
+
+        setSocket(newSocket);
+
         return () => {
-            newSocket.disconnect();
+            if (newSocket) {
+                newSocket.disconnect();
+            }
         };
-    }, []);
+    }, [user?._id]);
+
+    const handleStartChat = (matchId) => {
+        console.log('Starting chat with:', matchId);
+        const roomId = [user._id, matchId].sort().join('-');
+        
+        // Emit call initiation
+        socket.emit('initiate-call', {
+            targetUserId: matchId,
+            roomId
+        });
+
+        navigate(`/video-chat/${roomId}`);
+    };
 
     const handleLogout = () => {
         logout();
@@ -79,82 +115,104 @@ const Dashboard = () => {
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+                <CircularProgress />
+            </Container>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container sx={{ mt: 4 }}>
+                <Typography color="error">{error}</Typography>
+            </Container>
+        );
     }
 
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Container sx={{ mt: 4 }}>
             <Grid container spacing={3}>
-                {/* User Profile */}
-                <Grid item xs={12} md={4}>
-                    <Paper sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6">Your Profile</Typography>
-                            <Button variant="outlined" color="error" onClick={handleLogout}>
-                                Logout
-                            </Button>
-                        </Box>
-                        <Typography variant="body1">
-                            <strong>Username:</strong> {user.username}
+                <Grid item xs={12}>
+                    <Paper sx={{ p: 2 }}>
+                        <Typography variant="h5" gutterBottom>
+                            Welcome, {user?.username}!
                         </Typography>
-                        <Typography variant="body1" sx={{ mt: 2, mb: 1 }}>
-                            <strong>Your Hobbies:</strong>
+                        <Typography variant="body1" gutterBottom>
+                            Your Hobbies: {user?.hobbies?.join(', ')}
                         </Typography>
-                        <Stack direction="row" flexWrap="wrap" gap={1}>
-                            {user.hobbies.map((hobby) => (
-                                <Chip key={hobby} label={hobby} size="small" />
-                            ))}
-                        </Stack>
                     </Paper>
                 </Grid>
-
-                {/* Matches List */}
-                <Grid item xs={12} md={8}>
-                    <Paper sx={{ p: 3 }}>
-                        <Typography variant="h6" sx={{ mb: 2 }}>
+                <Grid item xs={12}>
+                    <Paper sx={{ p: 2 }}>
+                        <Typography variant="h6" gutterBottom>
                             People with Similar Interests
                         </Typography>
-                        <List>
-                            {matches.map((match) => (
-                                <ListItem
-                                    key={match.user._id}
-                                    sx={{
-                                        mb: 2,
-                                        border: '1px solid #eee',
-                                        borderRadius: 1,
-                                    }}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar>
-                                            <PersonIcon />
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <Box sx={{ flex: 1 }}>
-                                        <Typography variant="subtitle1">
-                                            {match.user.username}
-                                        </Typography>
-                                        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-                                            {match.user.hobbies.map((hobby) => (
-                                                <Chip
-                                                    key={hobby}
-                                                    label={hobby}
-                                                    size="small"
-                                                    sx={{ mr: 0.5, mb: 0.5 }}
-                                                />
-                                            ))}
-                                        </Stack>
-                                    </Box>
-                                    <Button
-                                        variant="contained"
-                                        startIcon={<VideocamIcon />}
-                                        onClick={() => handleStartChat(match.user._id)}
-                                        sx={{ ml: 2 }}
+                        {matches && matches.length > 0 ? (
+                            <List>
+                                {matches.map((match) => (
+                                    <ListItem
+                                        key={match._id}
+                                        secondaryAction={
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => handleStartChat(match._id)}
+                                            >
+                                                Chat
+                                            </Button>
+                                        }
                                     >
-                                        Chat
-                                    </Button>
-                                </ListItem>
-                            ))}
-                        </List>
+                                        <ListItemAvatar>
+                                            <Avatar>{match.username[0]}</Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography component="span" variant="body1">
+                                                        {match.username}
+                                                    </Typography>
+                                                    {match.isOnline && (
+                                                        <Box
+                                                            sx={{
+                                                                width: 8,
+                                                                height: 8,
+                                                                bgcolor: 'success.main',
+                                                                borderRadius: '50%'
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>
+                                            }
+                                            secondary={
+                                                <Box component="span">
+                                                    <Typography 
+                                                        component="span" 
+                                                        variant="body2" 
+                                                        color="text.secondary"
+                                                        display="block"
+                                                    >
+                                                        Hobbies: {match.hobbies.join(', ')}
+                                                    </Typography>
+                                                    {match.commonHobbies && match.commonHobbies.length > 0 && (
+                                                        <Typography 
+                                                            component="span" 
+                                                            variant="body2" 
+                                                            color="primary"
+                                                            display="block"
+                                                        >
+                                                            Common Interests: {match.commonHobbies.join(', ')}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            }
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        ) : (
+                            <Typography variant="body1">No matches found</Typography>
+                        )}
                     </Paper>
                 </Grid>
             </Grid>

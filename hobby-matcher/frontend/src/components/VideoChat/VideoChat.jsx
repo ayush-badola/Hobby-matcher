@@ -1,6 +1,7 @@
 import './VideoChat.css';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { io } from 'socket.io-client';
 import {
     Container,
@@ -21,19 +22,26 @@ import ChatBox from './ChatBox';
 
 const VideoChat = () => {
     const { roomId } = useParams();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [socket, setSocket] = useState(null);
     const [stream, setStream] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
-    const [callStatus, setCallStatus] = useState('connecting');
-    
+
     const localVideoRef = useRef();
     const remoteVideoRef = useRef();
     const peerConnectionRef = useRef();
+    const socketRef = useRef();
 
     const handleEndCall = () => {
+        console.log('Ending call...');
         try {
+            // Notify other user
+            if (socketRef.current) {
+                socketRef.current.emit('end-call', { roomId });
+            }
+
             // Stop all tracks
             if (stream) {
                 stream.getTracks().forEach(track => {
@@ -42,113 +50,197 @@ const VideoChat = () => {
                 setStream(null);
             }
 
+            // Clear video elements
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = null;
+            }
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = null;
+            }
+
             // Close peer connection
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.close();
                 peerConnectionRef.current = null;
             }
 
-            // Disconnect socket
-            if (socket) {
-                socket.emit('leave-room', roomId);
-                socket.disconnect();
-            }
-
-            // Navigate back to dashboard
             navigate('/dashboard');
         } catch (error) {
             console.error('Error ending call:', error);
-            // Force navigate even if there's an error
             navigate('/dashboard');
         }
     };
 
+    const setupWebRTC = async (mediaStream) => {
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ]
+        };
+
+        const peerConnection = new RTCPeerConnection(configuration);
+        peerConnectionRef.current = peerConnection;
+
+        // Add local tracks to peer connection
+        mediaStream.getTracks().forEach(track => {
+            console.log('Adding local track:', track.kind);
+            peerConnection.addTrack(track, mediaStream);
+        });
+
+        // Handle remote stream
+        peerConnection.ontrack = (event) => {
+            console.log('Received remote track:', event.track.kind);
+            if (remoteVideoRef.current && event.streams[0]) {
+                console.log('Setting remote stream to video element');
+                remoteVideoRef.current.srcObject = event.streams[0];
+                // Ensure video plays
+                remoteVideoRef.current.play().catch(e => console.log('Play error:', e));
+            }
+        };
+
+        // Log connection state changes
+        peerConnection.onconnectionstatechange = () => {
+            console.log('Connection state:', peerConnection.connectionState);
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log('ICE connection state:', peerConnection.iceConnectionState);
+        };
+
+        peerConnection.onicegatheringstatechange = () => {
+            console.log('ICE gathering state:', peerConnection.iceGatheringState);
+        };
+
+        // Handle ICE candidates
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate && socketRef.current) {
+                console.log('Sending ICE candidate');
+                socketRef.current.emit('ice-candidate', {
+                    candidate: event.candidate,
+                    roomId
+                });
+            }
+        };
+
+        return peerConnection;
+    };
+
     useEffect(() => {
-        const newSocket = io('http://localhost:5000');
-        setSocket(newSocket);
+        let mounted = true;
 
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(currentStream => {
-                setStream(currentStream);
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = currentStream;
+        const init = async () => {
+            try {
+                const newSocket = io('http://localhost:5000');
+                socketRef.current = newSocket;
+                if (mounted) setSocket(newSocket);
+
+                // Handle call end from other user
+                newSocket.on('call-ended', () => {
+                    console.log('Call ended by remote user');
+                    handleEndCall();
+                });
+
+                // Handle user disconnection
+                newSocket.on('user-disconnected', () => {
+                    console.log('Remote user disconnected');
+                    handleEndCall();
+                });
+
+                // Get media stream first
+                const mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                if (mounted) {
+                    setStream(mediaStream);
+                    if (localVideoRef.current) {
+                        localVideoRef.current.srcObject = mediaStream;
+                    }
                 }
-                setupWebRTC(currentStream, newSocket);
-            })
-            .catch(err => {
-                console.error('Error accessing media devices:', err);
-            });
 
-        newSocket.on('call-accepted', ({ accepterId }) => {
-            setCallStatus('connected');
-            // Start WebRTC connection
-            setupWebRTC(stream, newSocket);
-        });
+                const peerConnection = await setupWebRTC(mediaStream);
 
-        newSocket.on('call-rejected', () => {
-            alert('Call was rejected');
-            navigate('/dashboard');
-        });
+                // Handle ICE candidates
+                newSocket.on('ice-candidate', async ({ candidate }) => {
+                    try {
+                        console.log('Received ICE candidate');
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    } catch (error) {
+                        console.error('Error adding ICE candidate:', error);
+                    }
+                });
 
-        newSocket.on('user-disconnected', () => {
-            alert('Other user disconnected');
-            handleEndCall();
-        });
+                // Handle offer
+                newSocket.on('offer', async ({ offer }) => {
+                    try {
+                        console.log('Received offer');
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                        console.log('Created remote description');
+                        
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        console.log('Sending answer');
+                        newSocket.emit('answer', { answer, roomId });
+                    } catch (error) {
+                        console.error('Error handling offer:', error);
+                    }
+                });
 
+                // Handle answer
+                newSocket.on('answer', async ({ answer }) => {
+                    try {
+                        console.log('Received answer');
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                        console.log('Set remote description');
+                    } catch (error) {
+                        console.error('Error handling answer:', error);
+                    }
+                });
+
+                // Join room
+                newSocket.emit('join-room', roomId, async (isInitiator) => {
+                    if (isInitiator && mounted) {
+                        try {
+                            console.log('Creating offer as initiator');
+                            const offer = await peerConnection.createOffer({
+                                offerToReceiveAudio: true,
+                                offerToReceiveVideo: true
+                            });
+                            await peerConnection.setLocalDescription(offer);
+                            newSocket.emit('offer', { offer, roomId });
+                        } catch (error) {
+                            console.error('Error creating offer:', error);
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                if (mounted) navigate('/dashboard');
+            }
+        };
+
+        init();
+
+        // Cleanup function
         return () => {
-            // Cleanup when component unmounts
+            mounted = false;
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
             if (peerConnectionRef.current) {
                 peerConnectionRef.current.close();
             }
-            if (newSocket) {
-                newSocket.disconnect();
+            if (socketRef.current) {
+                socketRef.current.disconnect();
             }
         };
     }, [roomId]);
-
-    const setupWebRTC = async (stream, socket) => {
-        const configuration = {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        };
-
-        const peerConnection = new RTCPeerConnection(configuration);
-        peerConnectionRef.current = peerConnection;
-
-        stream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, stream);
-        });
-
-        peerConnection.ontrack = (event) => {
-            remoteVideoRef.current.srcObject = event.streams[0];
-        };
-
-        socket.emit('join-room', roomId);
-
-        // Handle WebRTC signaling
-        socket.on('offer', async (offer) => {
-            await peerConnection.setRemoteDescription(offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit('answer', answer, roomId);
-        });
-
-        socket.on('answer', async (answer) => {
-            await peerConnection.setRemoteDescription(answer);
-        });
-
-        socket.on('ice-candidate', async (candidate) => {
-            await peerConnection.addIceCandidate(candidate);
-        });
-
-        peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit('ice-candidate', event.candidate, roomId);
-            }
-        };
-    };
 
     const toggleAudio = () => {
         if (stream) {
@@ -213,7 +305,8 @@ const VideoChat = () => {
                                         width: '100%',
                                         height: '100%',
                                         objectFit: 'cover',
-                                        borderRadius: '8px'
+                                        borderRadius: '8px',
+                                        backgroundColor: '#000'
                                     }}
                                 />
                             </Box>

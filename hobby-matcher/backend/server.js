@@ -13,28 +13,59 @@ connectDB();
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: "http://localhost:5173", // Vite's default port
-        methods: ["GET", "POST"]
-    }
-});
 
-// Middleware
-app.use(cors());
+// Update CORS for both development and production
+const allowedOrigins = [
+    'http://localhost:5173',  // development
+    'https://your-netlify-app-name.netlify.app'  // you'll add this later
+];
+
+app.use(cors({
+    origin: function(origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
+
+// Basic route to test deployment
+app.get('/', (req, res) => {
+    res.json({ message: 'Hobby Matcher API is running' });
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/user'));
 
+const connectedUsers = new Map();
+
+// Socket.io
+const io = new Server(httpServer, {
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
+
 // Socket.io
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('User connected:', socket.id);
+
+    socket.on('register-user', (userId) => {
+        console.log('Registering user:', userId);
+        connectedUsers.set(userId, socket.id);
+        socket.userId = userId;
+    });
 
     socket.on('join-room', (roomId) => {
         socket.join(roomId);
-        console.log(`User ${socket.id} joined room ${roomId}`);
+        console.log(User ${socket.id} joined room ${roomId});
     });
 
     socket.on('leave-room', (roomId) => {
@@ -47,17 +78,35 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('receive-message', data);
     });
 
+    socket.on('end-call', ({ roomId }) => {
+        console.log('Call ended in room:', roomId);
+        // Notify everyone in the room except sender
+        socket.to(roomId).emit('call-ended');
+        // Leave the room
+        socket.leave(roomId);
+    });
+
     socket.on('disconnect', () => {
+        // Notify all rooms this socket was in
+        socket.rooms.forEach(roomId => {
+            socket.to(roomId).emit('user-disconnected');
+        });
         console.log('User disconnected:', socket.id);
     });
 
     // Handle call initiation
-    socket.on('initiate-call', ({ roomId, targetUserId }) => {
-        console.log(`Call initiated to ${targetUserId} in room ${roomId}`);
-        socket.to(targetUserId).emit('incoming-call', {
-            roomId,
-            callerId: socket.id
-        });
+    socket.on('initiate-call', ({ targetUserId, roomId }) => {
+        console.log('Call initiated:', { targetUserId, roomId });
+        const targetSocketId = connectedUsers.get(targetUserId);
+        
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('incoming-call', {
+                roomId,
+                callerId: socket.userId
+            });
+        } else {
+            socket.emit('call-failed', { message: 'User is not online' });
+        }
     });
 
     // Handle call acceptance
@@ -80,12 +129,12 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(Server running on port ${PORT});
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-    console.log(`Error: ${err.message}`);
+    console.log(Error: ${err.message});
     // Close server & exit process
     httpServer.close(() => process.exit(1));
 });
