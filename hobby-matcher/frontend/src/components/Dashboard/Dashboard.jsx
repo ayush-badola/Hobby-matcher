@@ -24,7 +24,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import VideocamIcon from '@mui/icons-material/Videocam';
 
 const Dashboard = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, onlineUsers } = useAuth();
     const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -215,6 +215,18 @@ const Dashboard = () => {
                         )}
                     </Paper>
                 </Grid>
+                {/* <Grid item xs={12}>
+                    <Paper sx={{ p: 2 }}>
+                        <Typography variant="h4">Online Users</Typography>
+                        <List>
+                            {Array.from(onlineUsers).map(userId => (
+                                <ListItem key={userId}>
+                                    <ListItemText primary={userId} />
+                                </ListItem>
+                            ))}
+                        </List>
+                    </Paper>
+                </Grid> */}
             </Grid>
         </Container>
     );

@@ -160,6 +160,7 @@ const VideoChat = () => {
                     setStream(mediaStream);
                     if (localVideoRef.current) {
                         localVideoRef.current.srcObject = mediaStream;
+                        remoteVideoRef.current.srcObject=mediaStream;
                     }
                 }
 
