@@ -21,7 +21,7 @@ const httpServer = createServer(app);
 
 // Update CORS for both development and production
 const allowedOrigins = [
-    'https://hobby-matcher-7-s60w.onrender.com/api',  // development
+    'http://localhost:5173',  // development
     'https://hobby-matcher-9-a0oh.onrender.com'  // you'll add this later
 ];
 
