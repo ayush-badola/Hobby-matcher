@@ -134,7 +134,7 @@ const VideoChat = () => {
 
         const init = async () => {
             try {
-                const newSocket = io('http://localhost:5000');
+                const newSocket = io('https://hobby-matcher-7-s60w.onrender.com');
                 socketRef.current = newSocket;
                 if (mounted) setSocket(newSocket);
 
