@@ -21,8 +21,8 @@ const httpServer = createServer(app);
 
 // Update CORS for both development and production
 const allowedOrigins = [
-    'http://localhost:5173',  // development
-    'https://your-netlify-app-name.netlify.app'  // you'll add this later
+    'https://hobby-matcher-7-s60w.onrender.com/api',  // development
+    'https://hobby-matcher-9-a0oh.onrender.com'  // you'll add this later
 ];
 
 app.use(cors({
