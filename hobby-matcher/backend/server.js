@@ -68,13 +68,30 @@ app.use('/api/users', require('./routes/user'));
 const connectedUsers = new Map();
 
 // Socket.io
+// const io = new Server(httpServer, {
+//     cors: {
+//         origin: allowedOrigins,
+//         methods: ["GET", "POST"],
+//         credentials: true
+//     }
+// });
+
+//-------------------------------------------------
 const io = new Server(httpServer, {
     cors: {
-        origin: allowedOrigins,
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.error(`Blocked Socket.io by CORS: ${origin}`);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         methods: ["GET", "POST"],
         credentials: true
     }
 });
+//----------------------------------------------------
 
 // Socket.io
 io.on('connection', (socket) => {
