@@ -157,18 +157,17 @@
 //     console.log(`Error: ${err.message}`);
 //     // Close server & exit process
 //     httpServer.close(() => process.exit(1));
-// });/
+// });
 
 
 
-// server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db'); // Ensure this file connects to your MongoDB
+const connectDB = require('./config/db');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-const User = require('./models/User'); // Ensure this model is defined correctly
+const User = require('./models/User');
 
 // Load correct env file
 dotenv.config({
@@ -186,7 +185,7 @@ const httpServer = createServer(app);
 // Update CORS for both development and production
 const allowedOrigins = [
     'http://localhost:5173',  // development
-    'https://hobby-matcher-9-a0oh.onrender.com'  // production
+    'https://hobby-matcher-9-a0oh.onrender.com'  // you'll add this later
 ];
 
 app.use(cors({
@@ -213,8 +212,8 @@ app.get('/api/wake-up', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', require('./routes/auth')); // Ensure this file is defined
-app.use('/api/users', require('./routes/user')); // Ensure this file is defined
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/user'));
 
 const connectedUsers = new Map();
 
@@ -227,9 +226,9 @@ const io = new Server(httpServer, {
     }
 });
 
-// Socket.io connection handling
+// Socket.io
 io.on('connection', (socket) => {
-    console.log('User  connected:', socket.id);
+    console.log('User connected:', socket.id);
 
     socket.on('register-user', (userId) => {
         console.log('Registering user:', userId);
@@ -246,7 +245,7 @@ io.on('connection', (socket) => {
 
     socket.on('join-room', (roomId) => {
         socket.join(roomId);
-        console.log(`User  ${socket.id} joined room ${roomId}`);
+        console.log(`User ${socket.id} joined room ${roomId}`);
     });
 
     socket.on('leave-room', (roomId) => {
@@ -275,13 +274,13 @@ io.on('connection', (socket) => {
             // Broadcast to all clients that this user is offline
             io.emit('user-status-change', { userId: socket.userId, isOnline: false });
         }
-        console.log('User  disconnected:', socket.id);
+        console.log('User disconnected:', socket.id);
     });
 
     // Handle call initiation
-    socket.on('initiate-call', ({ targetUser Id, roomId }) => {
-        console.log('Call initiated:', { targetUser Id, roomId });
-        const targetSocketId = connectedUsers.get(targetUser Id);
+    socket.on('initiate-call', ({ targetUserId, roomId }) => {
+        console.log('Call initiated:', { targetUserId, roomId });
+        const targetSocketId = connectedUsers.get(targetUserId);
         
         if (targetSocketId) {
             io.to(targetSocketId).emit('incoming-call', {
@@ -289,7 +288,7 @@ io.on('connection', (socket) => {
                 callerId: socket.userId
             });
         } else {
-            socket.emit('call-failed', { message: 'User  is not online' });
+            socket.emit('call-failed', { message: 'User is not online' });
         }
     });
 
@@ -321,4 +320,4 @@ process.on('unhandledRejection', (err, promise) => {
     console.log(`Error: ${err.message}`);
     // Close server & exit process
     httpServer.close(() => process.exit(1));
-});
+})

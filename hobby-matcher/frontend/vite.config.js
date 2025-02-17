@@ -7,9 +7,10 @@ export default defineConfig({
 
   server: {
     host: true, // Allow external access
-  },
+ 
 
   preview: {
     allowedHosts: ['hobby-matcher-9-a0oh.onrender.com'],
   }
+}
 })
