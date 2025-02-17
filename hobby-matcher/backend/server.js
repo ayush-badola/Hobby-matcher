@@ -25,16 +25,29 @@ const allowedOrigins = [
     'https://hobby-matcher-9-a0oh.onrender.com'  // you'll add this later
 ];
 
+// app.use(cors({
+//     origin: function(origin, callback) {
+//         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//             callback(null, true);
+//         } else {
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
+//     credentials: true
+// }));
+//------------------------------------------------------------
 app.use(cors({
-    origin: function(origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.error(`Blocked by CORS: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true
 }));
+//------------------------------------------------------
 
 app.use(express.json());
 
