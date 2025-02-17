@@ -34,7 +34,7 @@ const Dashboard = () => {
     const fetchMatches = async () => {
         try {
             // const response = await axios.get('http://localhost:5000/api/users/matches', {
-                const response = await axios.get('https://hobby-matcher-7-s60w.onrender.com/api/users/matches', {
+                const response = await axios.get('https://temp-4jiz.onrender.com/api/users/matches', {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
@@ -59,7 +59,7 @@ const Dashboard = () => {
     useEffect(() => {
         // Create socket connection
        // const newSocket = io('http://localhost:5000');https://hobby-matcher-7-s60w.onrender.com
-       const newSocket = io('https://hobby-matcher-7-s60w.onrender.com')
+       const newSocket = io('https://temp-4jiz.onrender.com')
         // Debug logs for socket connection
         newSocket.on('connect', () => {
             console.log('Socket Connected:', newSocket.id);

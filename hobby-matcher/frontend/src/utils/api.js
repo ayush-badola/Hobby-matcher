@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://hobby-matcher-7-s60w.onrender.com';
+const API_URL = 'https://temp-4jiz.onrender.com';
 
 const api = axios.create({
     baseURL: API_URL,

@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await axios.post('https://hobby-matcher-7-s60w.onrender.com/api/auth/login', {
+            const response = await axios.post('https://temp-4jiz.onrender.com/api/auth/login', {
                 email,
                 password
             });
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const response = await axios.post('https://hobby-matcher-7-s60w.onrender.com/api/auth/register', userData);
+            const response = await axios.post('https://temp-4jiz.onrender.com/api/auth/register', userData);
             setError(null);
             return response.data;
         } catch (err) {
