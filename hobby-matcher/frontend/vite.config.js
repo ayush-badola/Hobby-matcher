@@ -8,7 +8,7 @@ export default defineConfig({
     server: {
       host: true, // or specify the exact host
       preview: {
-        allowedHosts: ['hobby-matcher-9-a00h.onrender.com'],
+        allowedHosts: ['https://hobby-matcher-7-s60w.onrender.com'],
       }
     }
 
