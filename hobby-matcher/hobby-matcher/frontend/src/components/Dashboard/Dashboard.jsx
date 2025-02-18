@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import VideocamIcon from '@mui/icons-material/Videocam';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Dashboard = () => {
     const { user, logout, onlineUsers } = useAuth();
@@ -34,7 +35,7 @@ const Dashboard = () => {
     const fetchMatches = async () => {
         try {
             // const response = await axios.get('http://localhost:5000/api/users/matches', {
-                const response = await axios.get('https://temp-4jiz.onrender.com/api/users/matches', {
+                const response = await axios.get(`${API_URL}/api/users/matches`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
@@ -59,7 +60,7 @@ const Dashboard = () => {
     useEffect(() => {
         // Create socket connection
        // const newSocket = io('http://localhost:5000');https://hobby-matcher-7-s60w.onrender.com
-       const newSocket = io('https://temp-4jiz.onrender.com')
+       const newSocket = io(API_URL)
         // Debug logs for socket connection
         newSocket.on('connect', () => {
             console.log('Socket Connected:', newSocket.id);

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AuthContext = createContext();
 
@@ -9,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState(new Set());
-    const socket = io(import.meta.env.VITE_SOCKET_URL);
+    const socket = io(API_URL);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -43,7 +44,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await axios.post('https://temp-4jiz.onrender.com/api/auth/login', {
+            const response = await axios.post(`${API_URL}/api/auth/login`, {
                 email,
                 password
             });
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const response = await axios.post('https://temp-4jiz.onrender.com/api/auth/register', userData);
+            const response = await axios.post(`${API_URL}/api/auth/register`, userData);
             setError(null);
             return response.data;
         } catch (err) {

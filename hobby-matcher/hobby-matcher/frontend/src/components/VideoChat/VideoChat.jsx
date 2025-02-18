@@ -19,6 +19,7 @@ import {
     CallEnd
 } from '@mui/icons-material';
 import ChatBox from './ChatBox';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const VideoChat = () => {
     const { roomId } = useParams();
@@ -131,104 +132,97 @@ const VideoChat = () => {
 
     useEffect(() => {
         let mounted = true;
-
+    
         const init = async () => {
             try {
-                const newSocket = io('https://hobby-matcher-7-s60w.onrender.com');
+                const newSocket = io(API_URL);
                 socketRef.current = newSocket;
                 if (mounted) setSocket(newSocket);
-
-                // Handle call end from other user
-                newSocket.on('call-ended', () => {
-                    console.log('Call ended by remote user');
-                    handleEndCall();
-                });
-
-                // Handle user disconnection
-                newSocket.on('user-disconnected', () => {
-                    console.log('Remote user disconnected');
-                    handleEndCall();
-                });
-
-                // Get media stream first
+    
                 const mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: true,
                     audio: true
                 });
-                
+    
                 if (mounted) {
                     setStream(mediaStream);
                     if (localVideoRef.current) {
                         localVideoRef.current.srcObject = mediaStream;
-                        remoteVideoRef.current.srcObject=mediaStream;
                     }
                 }
-
+    
                 const peerConnection = await setupWebRTC(mediaStream);
-
+                
+                // Join room first
+                newSocket.emit('join-room', roomId);
+    
                 // Handle ICE candidates
-                newSocket.on('ice-candidate', async ({ candidate }) => {
+                newSocket.on('ice-candidate', async ({ candidate, from }) => {
                     try {
-                        console.log('Received ICE candidate');
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        if (from !== newSocket.id) {
+                            console.log('Received ICE candidate from:', from);
+                            if (peerConnection.remoteDescription) {
+                                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                            }
+                        }
                     } catch (error) {
                         console.error('Error adding ICE candidate:', error);
                     }
                 });
-
+    
                 // Handle offer
-                newSocket.on('offer', async ({ offer }) => {
-                    try {
-                        console.log('Received offer');
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                        console.log('Created remote description');
-                        
-                        const answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        console.log('Sending answer');
-                        newSocket.emit('answer', { answer, roomId });
-                    } catch (error) {
-                        console.error('Error handling offer:', error);
-                    }
-                });
-
-                // Handle answer
-                newSocket.on('answer', async ({ answer }) => {
-                    try {
-                        console.log('Received answer');
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                        console.log('Set remote description');
-                    } catch (error) {
-                        console.error('Error handling answer:', error);
-                    }
-                });
-
-                // Join room
-                newSocket.emit('join-room', roomId, async (isInitiator) => {
-                    if (isInitiator && mounted) {
+                newSocket.on('offer', async ({ offer, from }) => {
+                    if (from !== newSocket.id) {
                         try {
-                            console.log('Creating offer as initiator');
-                            const offer = await peerConnection.createOffer({
-                                offerToReceiveAudio: true,
-                                offerToReceiveVideo: true
-                            });
-                            await peerConnection.setLocalDescription(offer);
-                            newSocket.emit('offer', { offer, roomId });
+                            console.log('Received offer from:', from);
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                            
+                            const answer = await peerConnection.createAnswer();
+                            await peerConnection.setLocalDescription(answer);
+                            
+                            console.log('Sending answer');
+                            newSocket.emit('answer', { answer, roomId });
                         } catch (error) {
-                            console.error('Error creating offer:', error);
+                            console.error('Error handling offer:', error);
                         }
                     }
                 });
-
+    
+                // Handle answer
+                newSocket.on('answer', async ({ answer, from }) => {
+                    if (from !== newSocket.id) {
+                        try {
+                            console.log('Received answer from:', from);
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                        } catch (error) {
+                            console.error('Error handling answer:', error);
+                        }
+                    }
+                });
+    
+                // Create and send offer after a short delay
+                setTimeout(async () => {
+                    try {
+                        console.log('Creating offer');
+                        const offer = await peerConnection.createOffer({
+                            offerToReceiveAudio: true,
+                            offerToReceiveVideo: true
+                        });
+                        await peerConnection.setLocalDescription(offer);
+                        newSocket.emit('offer', { offer, roomId });
+                    } catch (error) {
+                        console.error('Error creating offer:', error);
+                    }
+                }, 1000);
+    
             } catch (error) {
                 console.error('Error:', error);
                 if (mounted) navigate('/dashboard');
             }
         };
-
+    
         init();
-
-        // Cleanup function
+    
         return () => {
             mounted = false;
             if (stream) {
@@ -241,7 +235,7 @@ const VideoChat = () => {
                 socketRef.current.disconnect();
             }
         };
-    }, [roomId]);
+    }, [roomId, navigate]);
 
     const toggleAudio = () => {
         if (stream) {
