@@ -8,8 +8,8 @@ const User = require('./models/User');
 
 // Load correct env file
 dotenv.config({
-    path: process.env.NODE_ENV === 'production' 
-        ? '.env.production' 
+    path: process.env.NODE_ENV === 'production'
+        ? '.env.production'
         : '.env'
 });
 
@@ -24,11 +24,11 @@ const allowedOrigins = [
     'http://localhost:5173',  // development
     'https://hobby-matcher-9-a0oh.onrender.com',  // you'll add this later
     'http://192.168.29.253:5173',
-    'https://hobby-matcher-frontend.onrender.com',
+    'https://hobby-matcher-frontend-wapg.onrender.com',
 ];
 
 app.use(cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
@@ -59,7 +59,7 @@ const connectedUsers = new Map();
 // Socket.io
 const io = new Server(httpServer, {
     cors: {
-        origin: 'https://hobby-matcher-frontend.onrender.com',
+        origin: 'https://hobby-matcher-frontend-wapg.onrender.com',
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
         console.log('Registering user:', userId);
         connectedUsers.set(userId, socket.id);
         socket.userId = userId;
-        
+
         // Update user's online status in database
         User.findByIdAndUpdate(userId, { isOnline: true })
             .then(() => {
@@ -137,7 +137,7 @@ io.on('connection', (socket) => {
     socket.on('initiate-call', ({ targetUserId, roomId }) => {
         console.log('Call initiated:', { targetUserId, roomId });
         const targetSocketId = connectedUsers.get(targetUserId);
-        
+
         if (targetSocketId) {
             io.to(targetSocketId).emit('incoming-call', {
                 roomId,
@@ -167,7 +167,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, '0.0.0.0' ,() => {
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
 
