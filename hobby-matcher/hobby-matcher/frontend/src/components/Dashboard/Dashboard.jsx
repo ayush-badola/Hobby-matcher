@@ -116,6 +116,129 @@ const Dashboard = () => {
         navigate('/login');
     };
 
+    // New function to group matches
+    const groupedMatches = () => {
+        if (!matches || !user?.hobbies) return { similar: [], different: [] };
+
+        return matches.reduce((acc, match) => {
+            // Calculate percentage of common hobbies
+            const commonCount = match.commonHobbies?.length || 0;
+            const totalUserHobbies = user.hobbies.length;
+            const matchPercentage = (commonCount / totalUserHobbies) * 100;
+
+            // Add matchPercentage to the match object
+            const matchWithScore = {
+                ...match,
+                matchPercentage: Math.round(matchPercentage)
+            };
+
+            if (matchPercentage >= 20) {
+                acc.similar.push(matchWithScore);
+            } else {
+                acc.different.push(matchWithScore);
+            }
+            return acc;
+        }, { similar: [], different: [] });
+    };
+
+    const MatchListSection = ({ matches, title }) => (
+        <Paper sx={{ p: 2, mb: 3 }} className="match-section">
+            <Typography variant="h6" gutterBottom>
+                {title}
+            </Typography>
+            {matches.length > 0 ? (
+                <List>
+                    {matches.map((match) => (
+                        <ListItem
+                            key={match._id}
+                            className="match-item"
+                            secondaryAction={
+                                <Stack direction="column" spacing={1} alignItems="center">
+                                    <Box className="similarity-score">
+                                        <CircularProgress
+                                            variant="determinate"
+                                            value={match.matchPercentage}
+                                            size={40}
+                                            thickness={4}
+                                            sx={{
+                                                color: match.matchPercentage >= 50 ? 'success.main' : 'primary.main'
+                                            }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="caption"
+                                                component="div"
+                                                sx={{ fontSize: '0.8rem' }}
+                                            >
+                                                {`${match.matchPercentage}%`}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => handleStartChat(match._id)}
+                                        startIcon={<VideocamIcon />}
+                                        className="chat-button"
+                                    >
+                                        Chat
+                                    </Button>
+                                </Stack>
+                            }
+                        >
+                            <ListItemAvatar>
+                                <Avatar className="user-avatar">{match.username[0]}</Avatar>
+                            </ListItemAvatar>
+                            <ListItemText
+                                primary={
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography component="span" variant="body1">
+                                            {match.username}
+                                        </Typography>
+                                        {match.isOnline && (
+                                            <Box className="online-indicator" />
+                                        )}
+                                    </Box>
+                                }
+                                secondary={
+                                    <Box component="span">
+                                        <Typography 
+                                            component="span" 
+                                            variant="body2" 
+                                            color="text.secondary"
+                                            display="block"
+                                        >
+                                            Hobbies: {match.hobbies.join(', ')}
+                                        </Typography>
+                                        {match.commonHobbies && match.commonHobbies.length > 0 && (
+                                            <Typography 
+                                                component="span" 
+                                                variant="body2" 
+                                                color="primary"
+                                                display="block"
+                                            >
+                                                Common Interests: {match.commonHobbies.join(', ')}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                }
+                            />
+                        </ListItem>
+                    ))}
+                </List>
+            ) : (
+                <Typography variant="body1">No matches found</Typography>
+            )}
+        </Paper>
+    );
+
     if (loading) {
         return (
             <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
@@ -132,103 +255,43 @@ const Dashboard = () => {
         );
     }
 
+    const { similar, different } = groupedMatches();
+
     return (
         <Container sx={{ mt: 4 }}>
             <Grid container spacing={3}>
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 2 }}>
+                    <Paper sx={{ p: 2 }} className="profile-card">
                         <Typography variant="h5" gutterBottom>
                             Welcome, {user?.username}!
                         </Typography>
                         <Typography variant="body1" gutterBottom>
-                            Your Hobbies: {user?.hobbies?.join(', ')}
+                            Your Hobbies: 
+                            <Box sx={{ mt: 1 }} className="hobby-tags">
+                                {user?.hobbies?.map((hobby) => (
+                                    <Chip 
+                                        key={hobby}
+                                        label={hobby}
+                                        className="hobby-tag"
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{ mr: 1, mb: 1 }}
+                                    />
+                                ))}
+                            </Box>
                         </Typography>
                     </Paper>
                 </Grid>
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 2 }}>
-                        <Typography variant="h6" gutterBottom>
-                            People with Similar Interests
-                        </Typography>
-                        {matches && matches.length > 0 ? (
-                            <List>
-                                {matches.map((match) => (
-                                    <ListItem
-                                        key={match._id}
-                                        secondaryAction={
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                onClick={() => handleStartChat(match._id)}
-                                            >
-                                                Chat
-                                            </Button>
-                                        }
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar>{match.username[0]}</Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Typography component="span" variant="body1">
-                                                        {match.username}
-                                                    </Typography>
-                                                    {match.isOnline && (
-                                                        <Box
-                                                            sx={{
-                                                                width: 8,
-                                                                height: 8,
-                                                                bgcolor: 'success.main',
-                                                                borderRadius: '50%'
-                                                            }}
-                                                        />
-                                                    )}
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <Box component="span">
-                                                    <Typography 
-                                                        component="span" 
-                                                        variant="body2" 
-                                                        color="text.secondary"
-                                                        display="block"
-                                                    >
-                                                        Hobbies: {match.hobbies.join(', ')}
-                                                    </Typography>
-                                                    {match.commonHobbies && match.commonHobbies.length > 0 && (
-                                                        <Typography 
-                                                            component="span" 
-                                                            variant="body2" 
-                                                            color="primary"
-                                                            display="block"
-                                                        >
-                                                            Common Interests: {match.commonHobbies.join(', ')}
-                                                        </Typography>
-                                                    )}
-                                                </Box>
-                                            }
-                                        />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        ) : (
-                            <Typography variant="body1">No matches found</Typography>
-                        )}
-                    </Paper>
+                    <MatchListSection 
+                        matches={similar} 
+                        title="People with Similar Interests" 
+                    />
+                    <MatchListSection 
+                        matches={different} 
+                        title="Discover New Interests" 
+                    />
                 </Grid>
-                {/* <Grid item xs={12}>
-                    <Paper sx={{ p: 2 }}>
-                        <Typography variant="h4">Online Users</Typography>
-                        <List>
-                            {Array.from(onlineUsers).map(userId => (
-                                <ListItem key={userId}>
-                                    <ListItemText primary={userId} />
-                                </ListItem>
-                            ))}
-                        </List>
-                    </Paper>
-                </Grid> */}
             </Grid>
         </Container>
     );

@@ -7,6 +7,7 @@
 .profile-card {
   height: 100%;
   transition: all 0.3s ease;
+  background: linear-gradient(to right bottom, #ffffff, #f8f9fa);
 }
 
 .profile-card:hover {
@@ -14,23 +15,40 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.match-card {
+.match-section {
   transition: all 0.3s ease;
-  cursor: pointer;
+  margin-bottom: 24px !important;
 }
 
-.match-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+.match-section:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.match-item {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.match-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.hobby-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .hobby-tag {
   margin: 4px;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease !important;
 }
 
 .hobby-tag:hover {
   transform: scale(1.05);
+  background-color: rgba(25, 118, 210, 0.08);
 }
 
 .match-button {
@@ -39,4 +57,93 @@
 
 .match-button:hover {
   transform: scale(1.05);
+}
+
+.chat-button {
+  transition: all 0.2s ease !important;
+}
+
+.chat-button:hover {
+  transform: scale(1.05);
+}
+
+.user-avatar {
+  background-color: #1976d2 !important;
+  transition: all 0.2s ease;
+}
+
+.user-avatar:hover {
+  transform: scale(1.1);
+}
+
+.online-indicator {
+  width: 8px !important;
+  height: 8px !important;
+  background-color: #4caf50 !important;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+.similarity-score {
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 8px;
+}
+
+.similarity-score .MuiCircularProgress-root {
+  position: relative;
+}
+
+.similarity-score > div:nth-child(2) {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-item .MuiListItemSecondaryAction-root {
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .hobby-tags {
+    justify-content: center;
+  }
+
+  .match-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .match-item .MuiListItemSecondaryAction-root {
+    position: relative;
+    transform: none;
+    margin-top: 16px;
+  }
+
+  .similarity-score {
+    margin-bottom: 12px;
+  }
 }
