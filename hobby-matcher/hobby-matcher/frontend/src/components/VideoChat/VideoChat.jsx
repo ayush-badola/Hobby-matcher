@@ -73,13 +73,24 @@ const VideoChat = () => {
     };
 
     const setupWebRTC = async (mediaStream) => {
+        // const configuration = {
+        //     iceServers: [
+        //         { urls: 'stun:stun.l.google.com:19302' },
+        //         { urls: 'stun:stun1.l.google.com:19302' },
+        //         { urls: 'stun:stun2.l.google.com:19302' },
+        //         { urls: 'stun:stun3.l.google.com:19302' },
+        //         { urls: 'stun:stun4.l.google.com:19302' }
+        //     ]
+        // };
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                {
+                    urls: 'turn:relay1.expressturn.com:3478',
+                    username: 'efacee72b54e6342eb6a450bf8b458b8',
+                    credential: 'b0b4beef477d6c889a0702b335f3363a'
+                }
             ]
         };
 
