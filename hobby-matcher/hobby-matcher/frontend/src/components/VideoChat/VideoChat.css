@@ -240,6 +240,24 @@
       gap: 16px;
       padding: 16px;
   }
+  .video-container {
+    height: auto !important;
+    min-height: 40vh;
+}
+
+.video-streams {
+    grid-template-columns: 1fr;
+}
+
+.control-button {
+    width: 48px !important;
+    height: 48px !important;
+}
+
+.video-controls {
+    padding: 12px;
+    gap: 12px;
+}
 }
 
 @media (max-width: 960px) {
