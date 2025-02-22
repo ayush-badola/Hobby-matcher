@@ -387,6 +387,7 @@ import {
     Container,
     Grid,
     Paper,
+    Typography,
     Box,
     IconButton
 } from '@mui/material';
@@ -405,6 +406,7 @@ const VideoChat = () => {
     const { roomId } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    
     const [socket, setSocket] = useState(null);
     const [stream, setStream] = useState(null);
     const [isMuted, setIsMuted] = useState(false);
@@ -412,70 +414,73 @@ const VideoChat = () => {
 
     const localVideoRef = useRef();
     const remoteVideoRef = useRef();
-    const peerConnectionRef = useRef(null);
-    const socketRef = useRef(null);
-
-    // ✅ Improved ICE Servers Configuration
-    const iceServers = [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-            urls: 'turn:relay1.expressturn.com:3478',
-            username: 'efacee72b54e6342eb6a450bf8b458b8',
-            credential: 'b0b4beef477d6c889a0702b335f3363a'
-        },
-        {
-            urls: 'turn:xirsys.com',
-            username: 'your_xirsys_username',
-            credential: 'your_xirsys_credential'
-        }
-    ];
+    const peerConnectionRef = useRef();
+    const socketRef = useRef();
+    const pendingCandidates = useRef([]); // Store ICE candidates until remote description is set
 
     const handleEndCall = () => {
         console.log('Ending call...');
-        if (socketRef.current) socketRef.current.emit('end-call', { roomId });
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
+        try {
+            if (socketRef.current) {
+                socketRef.current.emit('end-call', { roomId });
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                setStream(null);
+            }
+            if (localVideoRef.current) localVideoRef.current.srcObject = null;
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
+            }
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Error ending call:', error);
+            navigate('/dashboard');
         }
-        if (localVideoRef.current) localVideoRef.current.srcObject = null;
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-        if (peerConnectionRef.current) {
-            peerConnectionRef.current.close();
-            peerConnectionRef.current = null;
-        }
-        navigate('/dashboard');
     };
 
     const setupWebRTC = async (mediaStream) => {
-        const peerConnection = new RTCPeerConnection({ iceServers });
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                {
+                    urls: 'turn:relay1.expressturn.com:3478',
+                    username: 'efacee72b54e6342eb6a450bf8b458b8',
+                    credential: 'b0b4beef477d6c889a0702b335f3363a'
+                }
+            ]
+        };
+
+        const peerConnection = new RTCPeerConnection(configuration);
         peerConnectionRef.current = peerConnection;
 
-        // ✅ Add local tracks
         mediaStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, mediaStream);
         });
 
-        // ✅ Handle Remote Stream
         peerConnection.ontrack = (event) => {
             if (remoteVideoRef.current && event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
+                remoteVideoRef.current.play().catch(e => console.log('Play error:', e));
             }
         };
 
-        // ✅ ICE Candidate Handling
         peerConnection.onicecandidate = (event) => {
             if (event.candidate && socketRef.current) {
                 socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId });
             }
         };
 
-        // ✅ Restart ICE if failed
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log('ICE State:', peerConnection.iceConnectionState);
-            if (peerConnection.iceConnectionState === 'failed') {
-                console.warn('ICE failed, restarting...');
-                peerConnection.restartIce();
+        peerConnection.oniceconnectionstatechange = async () => {
+            if (peerConnection.remoteDescription && pendingCandidates.current.length > 0) {
+                console.log('Adding stored ICE candidates...');
+                for (const candidate of pendingCandidates.current) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+                pendingCandidates.current = [];
             }
         };
 
@@ -484,12 +489,19 @@ const VideoChat = () => {
 
     useEffect(() => {
         let mounted = true;
-
+    
         const init = async () => {
+            console.log("API_URL:", API_URL);
+            if (!API_URL) {
+                console.error("API_URL is not defined. Check your .env file.");
+                navigate('/dashboard');
+                return;
+            }
+
             try {
                 const newSocket = io(API_URL);
                 socketRef.current = newSocket;
-                setSocket(newSocket);
+                if (mounted) setSocket(newSocket);
 
                 const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
@@ -499,49 +511,41 @@ const VideoChat = () => {
                 }
 
                 const peerConnection = await setupWebRTC(mediaStream);
+
                 newSocket.emit('join-room', roomId);
 
-                // ✅ Handle ICE Candidate
-                newSocket.on('ice-candidate', async ({ candidate }) => {
-                    try {
-                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                    } catch (error) {
-                        console.error('Error adding ICE:', error);
+                newSocket.on('ice-candidate', async ({ candidate, from }) => {
+                    if (from !== newSocket.id) {
+                        console.log('Received ICE candidate from:', from);
+                        if (peerConnection.remoteDescription) {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        } else {
+                            console.warn('Remote description not set yet. Storing ICE candidate...');
+                            pendingCandidates.current.push(candidate);
+                        }
                     }
                 });
 
-                // ✅ Handle Offer
-                newSocket.on('offer', async ({ offer }) => {
-                    try {
+                newSocket.on('offer', async ({ offer, from }) => {
+                    if (from !== newSocket.id) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
                         const answer = await peerConnection.createAnswer();
                         await peerConnection.setLocalDescription(answer);
                         newSocket.emit('answer', { answer, roomId });
-                    } catch (error) {
-                        console.error('Error handling offer:', error);
                     }
                 });
 
-                // ✅ Handle Answer
-                newSocket.on('answer', async ({ answer }) => {
-                    try {
+                newSocket.on('answer', async ({ answer, from }) => {
+                    if (from !== newSocket.id) {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                    } catch (error) {
-                        console.error('Error handling answer:', error);
                     }
                 });
-
-                // ✅ Wait for ICE before Sending Offer
-                peerConnection.onicegatheringstatechange = () => {
-                    if (peerConnection.iceGatheringState === 'complete') {
-                        newSocket.emit('offer', { offer: peerConnection.localDescription, roomId });
-                    }
-                };
 
                 setTimeout(async () => {
                     try {
                         const offer = await peerConnection.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
                         await peerConnection.setLocalDescription(offer);
+                        newSocket.emit('offer', { offer, roomId });
                     } catch (error) {
                         console.error('Error creating offer:', error);
                     }
@@ -549,12 +553,12 @@ const VideoChat = () => {
 
             } catch (error) {
                 console.error('Error:', error);
-                navigate('/dashboard');
+                if (mounted) navigate('/dashboard');
             }
         };
-
+    
         init();
-
+    
         return () => {
             mounted = false;
             if (stream) stream.getTracks().forEach(track => track.stop());
@@ -563,19 +567,34 @@ const VideoChat = () => {
         };
     }, [roomId, navigate]);
 
+    const toggleAudio = () => {
+        if (stream) {
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setIsMuted(!audioTrack.enabled);
+            }
+        }
+    };
+
+    const toggleVideo = () => {
+        if (stream) {
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                setIsVideoOff(!videoTrack.enabled);
+            }
+        }
+    };
+
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
             <Grid container spacing={3}>
                 <Grid item xs={12} md={9}>
-                    <Paper sx={{ p: 2, height: '70vh' }}>
-                        <Box sx={{ display: 'flex', height: '100%' }}>
-                            <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '50%' }} />
-                            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '50%', backgroundColor: '#000' }} />
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
-                            <IconButton onClick={() => setIsMuted(!isMuted)}>{isMuted ? <MicOff /> : <Mic />}</IconButton>
-                            <IconButton onClick={() => setIsVideoOff(!isVideoOff)}>{isVideoOff ? <VideocamOff /> : <Videocam />}</IconButton>
-                            <IconButton onClick={handleEndCall}><CallEnd /></IconButton>
+                    <Paper sx={{ p: 2, height: '70vh', display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+                            <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', backgroundColor: '#000' }} />
                         </Box>
                     </Paper>
                 </Grid>
