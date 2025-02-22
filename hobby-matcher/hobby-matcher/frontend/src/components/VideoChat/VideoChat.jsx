@@ -347,20 +347,26 @@ const VideoChat = () => {
                                 </motion.div>
                             </Box>
 
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: 0.4 }}
+                            <Box 
+                                className="controls-wrapper"
+                                sx={{
+                                    position: 'absolute',
+                                    bottom: 20,
+                                    left: 0,
+                                    right: 0,
+                                    zIndex: 100,
+                                    pointerEvents: 'none'
+                                }}
                             >
                                 <Box sx={{ 
                                     display: 'flex', 
                                     justifyContent: 'center', 
                                     gap: 2, 
-                                    mt: 2,
                                     p: 2,
                                     borderRadius: '16px',
-                                    background: 'rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(10px)'
+                                    background: 'rgba(0,0,0,0.6)',
+                                    backdropFilter: 'blur(10px)',
+                                    pointerEvents: 'auto'
                                 }}>
                                     <IconButton 
                                         onClick={toggleAudio}
@@ -368,11 +374,11 @@ const VideoChat = () => {
                                         sx={{ 
                                             width: '56px',
                                             height: '56px',
-                                            background: isMuted ? 'rgba(244,67,54,0.8)' : 'rgba(255,255,255,0.2)',
+                                            background: isMuted ? 'rgba(244,67,54,0.8)' : 'rgba(0,0,0,0.6)',
                                             color: 'white',
                                             transition: 'all 0.3s ease',
                                             '&:hover': {
-                                                background: isMuted ? 'rgba(244,67,54,1)' : 'rgba(255,255,255,0.3)',
+                                                background: isMuted ? 'rgba(244,67,54,1)' : 'rgba(0,0,0,0.8)',
                                                 transform: 'scale(1.1)'
                                             }
                                         }}
@@ -416,7 +422,7 @@ const VideoChat = () => {
                                         <CallEnd />
                                     </IconButton>
                                 </Box>
-                            </motion.div>
+                            </Box>
                         </Paper>
                     </Grid>
 

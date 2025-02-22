@@ -65,24 +65,33 @@
   object-fit: cover;
 }
 
+/* Update the video controls styles in VideoChat.css */
 .video-controls {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   padding: 16px;
   display: flex;
   justify-content: center;
   gap: 16px;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: auto;
+  margin: 0 auto;
 }
 
 .control-button {
   width: 56px !important;
   height: 56px !important;
   backdrop-filter: blur(15px);
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
   color: white !important;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
   border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  z-index: 101;
 }
 
 .control-button:hover {
@@ -161,10 +170,12 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Update the video container styles */
 .video-container {
-  position: relative;
-  overflow: hidden;
+  position: relative !important;
+  overflow: visible !important; /* Change from hidden to visible */
   background: linear-gradient(135deg, #bdafdf 0%, #9d93cb 100%) !important;
+  min-height: 400px;
 }
 
 .video-container::before {
@@ -236,30 +247,13 @@
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .video-chat-container {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr) 300px;
       gap: 16px;
       padding: 16px;
   }
-  .video-container {
-    height: auto !important;
-    min-height: 40vh;
 }
 
-.video-streams {
-    grid-template-columns: 1fr;
-}
-
-.control-button {
-    width: 48px !important;
-    height: 48px !important;
-}
-
-.video-controls {
-    padding: 12px;
-    gap: 12px;
-}
-}
-
+/* Update responsive styles */
 @media (max-width: 960px) {
   .video-chat-container {
       grid-template-columns: 1fr;
@@ -271,18 +265,24 @@
       min-height: 40vh;
   }
 
-  .video-streams {
-      grid-template-columns: 1fr;
+  .controls-wrapper {
+      bottom: 10px;
   }
 
   .control-button {
       width: 48px !important;
       height: 48px !important;
   }
+}
 
-  .video-controls {
-      padding: 12px;
-      gap: 12px;
+@media (min-width: 961px) {
+  .controls-wrapper {
+      bottom: 20px;
+  }
+
+  .control-button {
+      width: 56px !important;
+      height: 56px !important;
   }
 }
 
@@ -459,4 +459,20 @@
 .chat-button:hover {
   background: linear-gradient(135deg, #917ac0 0%, #7665cf 100%) !important;
   box-shadow: 0 6px 20px rgba(161, 140, 209, 0.4) !important;
+}
+
+/* Add styles for the controls wrapper */
+.controls-wrapper {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  pointer-events: none; /* This allows clicks to pass through to elements below */
+}
+
+.controls-wrapper > * {
+  pointer-events: auto; /* Re-enable pointer events for children */
 }
