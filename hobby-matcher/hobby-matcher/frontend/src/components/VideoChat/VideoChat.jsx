@@ -82,17 +82,34 @@ const VideoChat = () => {
         //         { urls: 'stun:stun4.l.google.com:19302' }
         //     ]
         // };
+        // const configuration = {
+        //     iceServers: [
+        //         { urls: 'stun:stun.l.google.com:19302' },
+        //         { urls: 'stun:stun1.l.google.com:19302' },
+        //         {
+        //             urls: 'turn:relay1.expressturn.com:3478',
+        //             username: 'efacee72b54e6342eb6a450bf8b458b8',
+        //             credential: 'b0b4beef477d6c889a0702b335f3363a'
+        //         }
+        //     ]
+        // };/
+
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 {
-                    urls: 'turn:relay1.expressturn.com:3478',
-                    username: 'efacee72b54e6342eb6a450bf8b458b8',
-                    credential: 'b0b4beef477d6c889a0702b335f3363a'
+                    urls: 'turn:global.relay.metered.ca:80',
+                    username: 'free',
+                    credential: 'free'
+                },
+                {
+                    urls: 'turn:global.relay.metered.ca:443',
+                    username: 'free',
+                    credential: 'free'
                 }
             ]
-        };
+         };
 
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnectionRef.current = peerConnection;
