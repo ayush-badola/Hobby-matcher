@@ -22,6 +22,11 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import VideocamIcon from '@mui/icons-material/Videocam';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import ExploreIcon from '@mui/icons-material/Explore';
+import { motion } from 'framer-motion';
+import LogoutIcon from '@mui/icons-material/Logout';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Dashboard = () => {
@@ -111,10 +116,10 @@ const Dashboard = () => {
         navigate(`/video-chat/${roomId}`);
     };
 
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
+    // const handleLogout = () => {
+    //     logout();
+    //     navigate('/login');
+    // };
 
     // New function to group matches
     const groupedMatches = () => {
@@ -153,7 +158,7 @@ const Dashboard = () => {
                             key={match._id}
                             className="match-item"
                             secondaryAction={
-                                <Stack direction="column" spacing={1} alignItems="center">
+                                <Stack direction="row" spacing={2} alignItems="center">
                                     <Box className="similarity-score">
                                         <CircularProgress
                                             variant="determinate"
@@ -161,7 +166,7 @@ const Dashboard = () => {
                                             size={40}
                                             thickness={4}
                                             sx={{
-                                                color: match.matchPercentage >= 50 ? 'success.main' : 'primary.main'
+                                                color: match.matchPercentage >= 50 ? '#4CAF50' : '#2196F3'
                                             }}
                                         />
                                         <Box
@@ -170,12 +175,13 @@ const Dashboard = () => {
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
+                                                width: '100%',
+                                                height: '100%'
                                             }}
                                         >
                                             <Typography
                                                 variant="caption"
-                                                component="div"
-                                                sx={{ fontSize: '0.8rem' }}
+                                                sx={{ color: 'white', fontWeight: 'bold' }}
                                             >
                                                 {`${match.matchPercentage}%`}
                                             </Typography>
@@ -183,10 +189,15 @@ const Dashboard = () => {
                                     </Box>
                                     <Button
                                         variant="contained"
-                                        color="primary"
                                         onClick={() => handleStartChat(match._id)}
                                         startIcon={<VideocamIcon />}
                                         className="chat-button"
+                                        sx={{
+                                            color: 'white',
+                                            fontWeight: 500,
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                            letterSpacing: '0.5px'
+                                        }}
                                     >
                                         Chat
                                     </Button>
@@ -259,38 +270,101 @@ const Dashboard = () => {
 
     return (
         <Container sx={{ mt: 4 }}>
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+            </motion.div>
+
             <Grid container spacing={3}>
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 2 }} className="profile-card">
-                        <Typography variant="h5" gutterBottom>
+                    <Paper 
+                        sx={{ 
+                            p: 3,
+                            background: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
+                            color: 'white',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }} 
+                        className="profile-card"
+                    >
+                        <Box className="profile-background-animation" />
+                        <Typography variant="h4" gutterBottom fontWeight="bold">
                             Welcome, {user?.username}!
                         </Typography>
                         <Typography variant="body1" gutterBottom>
                             Your Hobbies: 
-                            <Box sx={{ mt: 1 }} className="hobby-tags">
-                                {user?.hobbies?.map((hobby) => (
-                                    <Chip 
+                            <Box sx={{ mt: 2 }} className="hobby-tags">
+                                {user?.hobbies?.map((hobby, index) => (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
                                         key={hobby}
-                                        label={hobby}
-                                        className="hobby-tag"
-                                        color="primary"
-                                        variant="outlined"
-                                        sx={{ mr: 1, mb: 1 }}
-                                    />
+                                    >
+                                        <Chip 
+                                            label={hobby}
+                                            className="hobby-tag"
+                                            sx={{
+                                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                                                color: 'white',
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                                                }
+                                            }}
+                                        />
+                                    </motion.div>
                                 ))}
                             </Box>
                         </Typography>
                     </Paper>
                 </Grid>
                 <Grid item xs={12}>
-                    <MatchListSection 
-                        matches={similar} 
-                        title="People with Similar Interests" 
-                    />
-                    <MatchListSection 
-                        matches={different} 
-                        title="Discover New Interests" 
-                    />
+                    <Box className="matches-container">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <Paper 
+                                sx={{ 
+                                    p: 2, 
+                                    mb: 3,
+                                    background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+                                    color: 'white'
+                                }} 
+                                className="match-section similar-interests"
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <FavoriteIcon />
+                                    <Typography variant="h6">People with Similar Interests</Typography>
+                                </Box>
+                                <MatchListSection matches={similar} isDark />
+                            </Paper>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <Paper 
+                                sx={{ 
+                                    p: 2,
+                                    background: 'linear-gradient(135deg, #4CAF50 0%, #45B649 100%)',
+                                    color: 'white'
+                                }} 
+                                className="match-section different-interests"
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <ExploreIcon />
+                                    <Typography variant="h6">Discover New Interests</Typography>
+                                </Box>
+                                <MatchListSection matches={different} isDark />
+                            </Paper>
+                        </motion.div>
+                    </Box>
                 </Grid>
             </Grid>
         </Container>

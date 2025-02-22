@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
+import { motion } from 'framer-motion';
 
 const HOBBY_OPTIONS = [
     'Reading', 'Gaming', 'Cooking', 'Photography', 'Traveling',
@@ -257,126 +258,165 @@ const Register = () => {
     const steps = ['Account Details', 'Select Hobbies'];
 
     return (
-        <Container component="main" maxWidth="sm">
-            <Paper elevation={3} sx={{ p: 4, mt: 8 }}>
-                <Typography component="h1" variant="h5" align="center">
-                    Register
-                </Typography>
+        <Container 
+            component="main" 
+            maxWidth="sm" 
+            sx={{ 
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 4 // Add padding top and bottom
+            }}
+        >
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                style={{ width: '100%' }}
+            >
+                <Paper elevation={3} className="auth-paper" sx={{ p: 4 }}>
+                    <Box className="auth-background-animation" />
+                    <Typography variant="h4" className="auth-title">
+                        Create Account
+                    </Typography>
 
-                <Stepper activeStep={activeStep} sx={{ mt: 3, mb: 4 }}>
-                    {steps.map((label) => (
-                        <Step key={label}>
-                            <StepLabel>{label}</StepLabel>
-                        </Step>
-                    ))}
-                </Stepper>
+                    <Stepper activeStep={activeStep} sx={{ mt: 3, mb: 4 }}>
+                        {steps.map((label) => (
+                            <Step key={label}>
+                                <StepLabel>{label}</StepLabel>
+                            </Step>
+                        ))}
+                    </Stepper>
 
-                {error && (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                        {error}
-                    </Alert>
-                )}
-
-                {activeStep === 0 ? (
-                    <Box component="form" sx={{ mt: 2 }}>
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="username"
-                            label="Username"
-                            type="text"
-                            id="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="email"
-                            label="Email Address"
-                            type="email"
-                            id="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="password"
-                            label="Password"
-                            type="password"
-                            id="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                        />
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="confirmPassword"
-                            label="Confirm Password"
-                            type="password"
-                            id="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                        />
-                    </Box>
-                ) : (
-                    <Box sx={{ mt: 2 }}>
-                        {renderSpeechInput()}
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            Select or confirm your hobbies:
-                        </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                            {HOBBY_OPTIONS.map((hobby) => (
-                                <Chip
-                                    key={hobby}
-                                    label={hobby}
-                                    onClick={() => handleHobbyToggle(hobby)}
-                                    color={formData.hobbies.includes(hobby) ? "primary" : "default"}
-                                    sx={{ mb: 1 }}
-                                />
-                            ))}
-                        </Stack>
-                    </Box>
-                )}
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-                    <Button
-                        onClick={handleBack}
-                        disabled={activeStep === 0}
-                    >
-                        Back
-                    </Button>
-                    {activeStep === steps.length - 1 ? (
-                        <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            disabled={formData.hobbies.length < 3}
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
                         >
-                            Register
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="contained"
-                            onClick={handleNext}
-                        >
-                            Next
-                        </Button>
+                            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+                                {error}
+                            </Alert>
+                        </motion.div>
                     )}
-                </Box>
 
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                    <Link to="/login" style={{ textDecoration: 'none' }}>
-                        <Typography variant="body2" color="primary">
-                            Already have an account? Sign In
-                        </Typography>
-                    </Link>
-                </Box>
-            </Paper>
+                    {activeStep === 0 ? (
+                        <Box component="form" sx={{ mt: 2 }}>
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                name="username"
+                                label="Username"
+                                type="text"
+                                id="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                            />
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                name="email"
+                                label="Email Address"
+                                type="email"
+                                id="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                            />
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                name="password"
+                                label="Password"
+                                type="password"
+                                id="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                            />
+                            <TextField
+                                margin="normal"
+                                required
+                                fullWidth
+                                name="confirmPassword"
+                                label="Confirm Password"
+                                type="password"
+                                id="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                            />
+                        </Box>
+                    ) : (
+                        <Box sx={{ mt: 2 }}>
+                            {renderSpeechInput()}
+                            <Typography variant="body1" sx={{ mb: 2 }}>
+                                Select or confirm your hobbies:
+                            </Typography>
+                            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                                {HOBBY_OPTIONS.map((hobby) => (
+                                    <Chip
+                                        key={hobby}
+                                        label={hobby}
+                                        onClick={() => handleHobbyToggle(hobby)}
+                                        color={formData.hobbies.includes(hobby) ? "primary" : "default"}
+                                        sx={{ mb: 1 }}
+                                    />
+                                ))}
+                            </Stack>
+                        </Box>
+                    )}
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                        <Button
+                            onClick={handleBack}
+                            disabled={activeStep === 0}
+                        >
+                            Back
+                        </Button>
+                        {activeStep === steps.length - 1 ? (
+                            <Button
+                                variant="contained"
+                                onClick={handleSubmit}
+                                disabled={formData.hobbies.length < 3}
+                            >
+                                Register
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="contained"
+                                onClick={handleNext}
+                            >
+                                Next
+                            </Button>
+                        )}
+                    </Box>
+
+                    <Box sx={{ textAlign: 'center', mt: 2 }}>
+    <Link 
+        to="/login" 
+        style={{ 
+            textDecoration: 'none',
+            cursor: 'pointer',
+            display: 'inline-block'
+        }}
+    >
+        <Typography 
+            variant="body1" 
+            className="auth-link"
+            sx={{
+                '&:hover': {
+                    transform: 'translateY(-2px)',
+                },
+                transition: 'transform 0.3s ease'
+            }}
+        >
+            Already have an account? Sign In
+        </Typography>
+    </Link>
+</Box>
+                </Paper>
+            </motion.div>
         </Container>
     );
 };

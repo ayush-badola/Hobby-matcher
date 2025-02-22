@@ -19,6 +19,8 @@ import {
     CallEnd
 } from '@mui/icons-material';
 import ChatBox from './ChatBox';
+import { motion } from 'framer-motion';
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const VideoChat = () => {
@@ -73,43 +75,15 @@ const VideoChat = () => {
     };
 
     const setupWebRTC = async (mediaStream) => {
-        // const configuration = {
-        //     iceServers: [
-        //         { urls: 'stun:stun.l.google.com:19302' },
-        //         { urls: 'stun:stun1.l.google.com:19302' },
-        //         { urls: 'stun:stun2.l.google.com:19302' },
-        //         { urls: 'stun:stun3.l.google.com:19302' },
-        //         { urls: 'stun:stun4.l.google.com:19302' }
-        //     ]
-        // };
-        // const configuration = {
-        //     iceServers: [
-        //         { urls: 'stun:stun.l.google.com:19302' },
-        //         { urls: 'stun:stun1.l.google.com:19302' },
-        //         {
-        //             urls: 'turn:relay1.expressturn.com:3478',
-        //             username: 'efacee72b54e6342eb6a450bf8b458b8',
-        //             credential: 'b0b4beef477d6c889a0702b335f3363a'
-        //         }
-        //     ]
-        // };/
-
         const configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                {
-                    urls: 'turn:global.relay.metered.ca:80',
-                    username: 'free',
-                    credential: 'free'
-                },
-                {
-                    urls: 'turn:global.relay.metered.ca:443',
-                    username: 'free',
-                    credential: 'free'
-                }
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
             ]
-         };
+        };
 
         const peerConnection = new RTCPeerConnection(configuration);
         peerConnectionRef.current = peerConnection;
@@ -287,110 +261,178 @@ const VideoChat = () => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Grid container spacing={3}>
-                <Grid item xs={12} md={9}>
-                    <Paper sx={{ p: 2, height: '70vh', display: 'flex', flexDirection: 'column' }}>
-                        <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
-                            <Box sx={{ flex: 1, position: 'relative' }}>
-                                <video
-                                    ref={localVideoRef}
-                                    autoPlay
-                                    muted
-                                    playsInline
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        borderRadius: '8px'
-                                    }}
-                                />
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        position: 'absolute',
-                                        bottom: 8,
-                                        left: 8,
-                                        color: 'white',
-                                        bgcolor: 'rgba(0,0,0,0.5)',
-                                        padding: '4px 8px',
-                                        borderRadius: '4px'
-                                    }}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <Grid container spacing={3}>
+                    <Grid item xs={12} md={9}>
+                        <Paper 
+                            sx={{ 
+                                p: 2, 
+                                height: '70vh', 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                background: 'linear-gradient(135deg, #a18cd1 0%, #8675df 100%)', // New color
+                                borderRadius: '16px',
+                                overflow: 'hidden',
+                                boxShadow: '0 8px 32px rgba(161, 140, 209, 0.2)' // Updated shadow color
+                            }}
+                            className="video-container"
+                        >
+                            <Box sx={{ display: 'flex', gap: 2, height: '100%', position: 'relative' }}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.5 }}
+                                    style={{ flex: 1 }}
                                 >
-                                    You {isMuted && '(Muted)'} {isVideoOff && '(Video Off)'}
-                                </Typography>
+                                    <Box sx={{ position: 'relative', height: '100%' }}>
+                                        <video
+                                            ref={localVideoRef}
+                                            autoPlay
+                                            muted
+                                            playsInline
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                borderRadius: '12px',
+                                                transform: 'scaleX(-1)'
+                                            }}
+                                            className="video-stream"
+                                        />
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                bottom: 16,
+                                                left: 16,
+                                                padding: '8px 16px',
+                                                borderRadius: '20px',
+                                                background: 'rgba(0,0,0,0.6)',
+                                                backdropFilter: 'blur(10px)',
+                                                color: 'white',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                        >
+                                            <Typography variant="body2">
+                                                You {isMuted && '(Muted)'} {isVideoOff && '(Video Off)'}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                </motion.div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.2 }}
+                                    style={{ flex: 1 }}
+                                >
+                                    <Box sx={{ position: 'relative', height: '100%' }}>
+                                        <video
+                                            ref={remoteVideoRef}
+                                            autoPlay
+                                            playsInline
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                borderRadius: '12px',
+                                                backgroundColor: '#000'
+                                            }}
+                                            className="video-stream"
+                                        />
+                                    </Box>
+                                </motion.div>
                             </Box>
-                            <Box sx={{ flex: 1, position: 'relative' }}>
-                                <video
-                                    ref={remoteVideoRef}
-                                    autoPlay
-                                    playsInline
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        borderRadius: '8px',
-                                        backgroundColor: '#000'
-                                    }}
-                                />
-                            </Box>
-                        </Box>
-                        <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            gap: 2, 
-                            mt: 2,
-                            p: 2,
-                            backgroundColor: 'rgba(0,0,0,0.05)',
-                            borderRadius: '8px'
-                        }}>
-                            <IconButton 
-                                onClick={toggleAudio}
-                                sx={{ 
-                                    backgroundColor: isMuted ? 'error.main' : 'primary.main',
-                                    color: 'white',
-                                    '&:hover': {
-                                        backgroundColor: isMuted ? 'error.dark' : 'primary.dark',
-                                    }
-                                }}
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.4 }}
                             >
-                                {isMuted ? <MicOff /> : <Mic />}
-                            </IconButton>
-                            <IconButton 
-                                onClick={toggleVideo}
-                                sx={{ 
-                                    backgroundColor: isVideoOff ? 'error.main' : 'primary.main',
-                                    color: 'white',
-                                    '&:hover': {
-                                        backgroundColor: isVideoOff ? 'error.dark' : 'primary.dark',
-                                    }
-                                }}
-                            >
-                                {isVideoOff ? <VideocamOff /> : <Videocam />}
-                            </IconButton>
-                            <IconButton 
-                                onClick={handleEndCall}
-                                sx={{ 
-                                    backgroundColor: 'error.main',
-                                    color: 'white',
-                                    '&:hover': {
-                                        backgroundColor: 'error.dark',
-                                    }
-                                }}
-                            >
-                                <CallEnd />
-                            </IconButton>
-                        </Box>
-                    </Paper>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'center', 
+                                    gap: 2, 
+                                    mt: 2,
+                                    p: 2,
+                                    borderRadius: '16px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    backdropFilter: 'blur(10px)'
+                                }}>
+                                    <IconButton 
+                                        onClick={toggleAudio}
+                                        className="control-button"
+                                        sx={{ 
+                                            width: '56px',
+                                            height: '56px',
+                                            background: isMuted ? 'rgba(244,67,54,0.8)' : 'rgba(255,255,255,0.2)',
+                                            color: 'white',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                background: isMuted ? 'rgba(244,67,54,1)' : 'rgba(255,255,255,0.3)',
+                                                transform: 'scale(1.1)'
+                                            }
+                                        }}
+                                    >
+                                        {isMuted ? <MicOff /> : <Mic />}
+                                    </IconButton>
+
+                                    <IconButton 
+                                        onClick={toggleVideo}
+                                        className="control-button"
+                                        sx={{ 
+                                            width: '56px',
+                                            height: '56px',
+                                            background: isVideoOff ? 'rgba(244,67,54,0.8)' : 'rgba(255,255,255,0.2)',
+                                            color: 'white',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                background: isVideoOff ? 'rgba(244,67,54,1)' : 'rgba(255,255,255,0.3)',
+                                                transform: 'scale(1.1)'
+                                            }
+                                        }}
+                                    >
+                                        {isVideoOff ? <VideocamOff /> : <Videocam />}
+                                    </IconButton>
+
+                                    <IconButton 
+                                        onClick={handleEndCall}
+                                        className="control-button end-call"
+                                        sx={{ 
+                                            width: '56px',
+                                            height: '56px',
+                                            background: 'rgba(244,67,54,0.8)',
+                                            color: 'white',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                background: 'rgba(244,67,54,1)',
+                                                transform: 'scale(1.1)'
+                                            }
+                                        }}
+                                    >
+                                        <CallEnd />
+                                    </IconButton>
+                                </Box>
+                            </motion.div>
+                        </Paper>
+                    </Grid>
+
+                    <Grid item xs={12} md={3}>
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: 0.6 }}
+                        >
+                            <ChatBox socket={socket} roomId={roomId} />
+                        </motion.div>
+                    </Grid>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                    <ChatBox socket={socket} roomId={roomId} />
-                </Grid>
-            </Grid>
+            </motion.div>
         </Container>
     );
 };
 
 export default VideoChat;
-
-
-

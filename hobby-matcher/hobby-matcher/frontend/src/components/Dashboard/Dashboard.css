@@ -2,52 +2,96 @@
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }
 
 .profile-card {
   height: 100%;
+  position: relative;
+  overflow: hidden;
   transition: all 0.3s ease;
   background: linear-gradient(to right bottom, #ffffff, #f8f9fa);
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
 }
 
 .profile-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+.profile-background-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.1) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 60px 60px;
+  animation: moveBackground 3s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes moveBackground {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 60px 60px;
+  }
 }
 
 .match-section {
   transition: all 0.3s ease;
   margin-bottom: 24px !important;
+  border-radius: 16px !important;
+  overflow: hidden;
 }
 
 .match-section:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-3px);
 }
 
 .match-item {
   transition: all 0.3s ease;
-  border-radius: 8px;
+  border-radius: 12px !important;
   margin: 8px 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .match-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(5px);
 }
 
 .hobby-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .hobby-tag {
   margin: 4px;
-  transition: all 0.2s ease !important;
+  transition: all 0.3s ease !important;
+  cursor: default;
 }
 
 .hobby-tag:hover {
-  transform: scale(1.05);
+  transform: translateY(-3px) rotate(3deg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   background-color: rgba(25, 118, 210, 0.08);
 }
 
@@ -59,29 +103,42 @@
   transform: scale(1.05);
 }
 
+/* Update chat button styles */
 .chat-button {
-  transition: all 0.2s ease !important;
+  transition: all 0.3s ease !important;
+  background: linear-gradient(135deg, #4CAF50 0%, #45B649 100%) !important;
+  backdrop-filter: blur(10px);
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  letter-spacing: 0.5px !important;
+  min-width: 120px !important;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
 }
 
 .chat-button:hover {
   transform: scale(1.05);
+  background: linear-gradient(135deg, #45B649 0%, #4CAF50 100%) !important;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4) !important;
 }
 
 .user-avatar {
-  background-color: #1976d2 !important;
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s ease !important;
 }
 
 .user-avatar:hover {
-  transform: scale(1.1);
+  transform: scale(1.1) rotate(360deg);
 }
 
 .online-indicator {
-  width: 8px !important;
-  height: 8px !important;
-  background-color: #4caf50 !important;
+  width: 10px !important;
+  height: 10px !important;
+  background: #4CAF50 !important;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
   animation: pulse 2s infinite;
 }
 
@@ -90,17 +147,23 @@
     box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
   }
 }
 
+/* Update similarity score styles */
 .similarity-score {
   position: relative;
   display: inline-flex;
   margin-bottom: 8px;
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  padding: 8px;
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
 }
 
 .similarity-score .MuiCircularProgress-root {
@@ -116,6 +179,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.similarity-score .MuiTypography-caption {
+  color: #E3F2FD !important;
+  font-weight: bold !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  font-size: 0.85rem !important;
 }
 
 .match-item .MuiListItemSecondaryAction-root {
@@ -135,6 +205,7 @@
   .match-item {
     flex-direction: column;
     align-items: flex-start;
+    padding: 16px;
   }
 
   .match-item .MuiListItemSecondaryAction-root {
@@ -146,4 +217,28 @@
   .similarity-score {
     margin-bottom: 12px;
   }
+
+  .MuiListItemSecondaryAction-root {
+    position: relative !important;
+    transform: none !important;
+    top: auto !important;
+    right: auto !important;
+    margin-top: 16px;
+  }
+}
+
+/* Add smooth scrolling behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Update match item hover effects */
+.similar-interests .match-item:hover {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 142, 83, 0.2));
+  transform: translateX(5px);
+}
+
+.different-interests .match-item:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(69, 182, 73, 0.2));
+  transform: translateX(5px);
 }
