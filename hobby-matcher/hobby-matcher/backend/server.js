@@ -61,7 +61,7 @@ const connectedUsers = new Map();
 // Socket.io
 const io = new Server(httpServer, {
     cors: {
-        origin: 'https://hobby-matcher-frontend-wapg.onrender.com',
+        origin: 'https://hobby-matcher-frontend.onrender.com',
         methods: ["GET", "POST"],
         credentials: true
     }

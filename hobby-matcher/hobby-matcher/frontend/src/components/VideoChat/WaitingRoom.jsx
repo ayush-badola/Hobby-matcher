@@ -8,6 +8,20 @@ const WaitingRoom = () => {
     const navigate = useNavigate();
     const { socket, user } = useAuth();
 
+    useEffect(() => {
+        // Listen for a match being found
+        socket.on('random-match-found', ({ roomId, peer }) => {
+            console.log('Match found:', roomId, peer);
+            // Navigate to the video chat room once a match is found
+            navigate(`/video-chat/${roomId}`);
+        });
+
+        // Cleanup listener on unmount
+        return () => {
+            socket.off('random-match-found');
+        };
+    }, [socket, navigate]);
+
     const handleCancel = () => {
         if (socket) {
             socket.emit('leave-random-queue', user._id);
