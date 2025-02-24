@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const User = require('./models/User');
+const waitingUsers = new Set();
 
 // Load correct env file
 dotenv.config({
@@ -96,6 +97,13 @@ io.on('connection', (socket) => {
             }
         }
         console.log('User disconnected:', socket.id);
+
+        // Remove from waiting queue
+        waitingUsers.forEach(user => {
+            if (user.socketId === socket.id) {
+                waitingUsers.delete(user);
+            }
+        });
     });
 
     // Handle WebRTC signaling
@@ -165,6 +173,48 @@ io.on('connection', (socket) => {
         socket.to(callerId).emit('call-rejected', {
             roomId,
             rejecterId: socket.id
+        });
+    });
+
+    socket.on('join-random-queue', (userData) => {
+        console.log('User joined random queue:', userData.username);
+
+        // Check if there's someone waiting
+        const waitingUser = Array.from(waitingUsers)[0];
+        if (waitingUser && waitingUser.userId !== userData.userId) {
+            // Create a room ID
+            const roomId = `random-${Date.now()}`;
+
+            // Remove waiting user from queue
+            waitingUsers.delete(waitingUser);
+
+            // Notify both users about the match
+            io.to(waitingUser.socketId).emit('random-match-found', {
+                roomId,
+                peer: { username: userData.username, id: userData.userId }
+            });
+
+            socket.emit('random-match-found', {
+                roomId,
+                peer: { username: waitingUser.username, id: waitingUser.userId }
+            });
+        } else {
+            // Add user to waiting queue
+            waitingUsers.add({
+                socketId: socket.id,
+                userId: userData.userId,
+                username: userData.username
+            });
+            socket.emit('waiting-for-match');
+        }
+    });
+
+    socket.on('leave-random-queue', (userId) => {
+        // Remove user from waiting queue
+        waitingUsers.forEach(user => {
+            if (user.userId === userId) {
+                waitingUsers.delete(user);
+            }
         });
     });
 });
