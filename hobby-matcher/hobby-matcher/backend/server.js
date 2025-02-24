@@ -25,7 +25,6 @@ const allowedOrigins = [
     'http://localhost:5173',  // development
     'https://hobby-matcher-9-a0oh.onrender.com',  // you'll add this later
     'http://192.168.29.253:5173',
-    'https://hobby-matcher-frontend-wapg.onrender.com',
     'https://hobby-matcher-frontend.onrender.com',
 ];
 
