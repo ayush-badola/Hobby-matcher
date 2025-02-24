@@ -69,6 +69,34 @@ const io = new Server(httpServer, {
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
+    socket.on('register-user', async (userId) => {
+        try {
+            // Update user's online status in database
+            await User.findByIdAndUpdate(userId, { isOnline: true });
+
+            // Broadcast online status to all clients
+            io.emit('user-status-change', { userId, isOnline: true });
+
+            socket.userId = userId;
+        } catch (error) {
+            console.error('Error updating online status:', error);
+        }
+    });
+
+    socket.on('disconnect', async () => {
+        if (socket.userId) {
+            try {
+                // Update user's online status in database
+                await User.findByIdAndUpdate(socket.userId, { isOnline: false });
+
+                // Broadcast offline status to all clients
+                io.emit('user-status-change', { userId: socket.userId, isOnline: false });
+            } catch (error) {
+                console.error('Error updating offline status:', error);
+            }
+        }
+        console.log('User disconnected:', socket.id);
+    });
 
     // Handle WebRTC signaling
     socket.on('offer', ({ offer, roomId }) => {
@@ -84,19 +112,6 @@ io.on('connection', (socket) => {
     socket.on('ice-candidate', ({ candidate, roomId }) => {
         console.log('Relaying ICE candidate for room:', roomId);
         socket.to(roomId).emit('ice-candidate', { candidate, from: socket.id });
-    });
-
-    socket.on('register-user', (userId) => {
-        console.log('Registering user:', userId);
-        connectedUsers.set(userId, socket.id);
-        socket.userId = userId;
-
-        // Update user's online status in database
-        User.findByIdAndUpdate(userId, { isOnline: true })
-            .then(() => {
-                // Broadcast to all clients that this user is online
-                io.emit('user-status-change', { userId, isOnline: true });
-            });
     });
 
     socket.on('join-room', (roomId) => {
@@ -120,17 +135,6 @@ io.on('connection', (socket) => {
         socket.to(roomId).emit('call-ended');
         // Leave the room
         socket.leave(roomId);
-    });
-
-    socket.on('disconnect', async () => {
-        if (socket.userId) {
-            connectedUsers.delete(socket.userId);
-            // Update user's online status in database
-            await User.findByIdAndUpdate(socket.userId, { isOnline: false });
-            // Broadcast to all clients that this user is offline
-            io.emit('user-status-change', { userId: socket.userId, isOnline: false });
-        }
-        console.log('User disconnected:', socket.id);
     });
 
     // Handle call initiation
